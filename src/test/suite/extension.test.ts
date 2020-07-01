@@ -332,7 +332,7 @@ suite(`Integration Tests`, () => {
             assert.fail();
         }
         catch (error) {
-            assert(error instanceof RetriesExceededError);
+            assert.equal(error.name, `RetriesExceededError`);
         }
     });
 
@@ -347,7 +347,7 @@ suite(`Integration Tests`, () => {
         }
         catch (error) {
             assert(error.response.status === 404);
-            assert(!(error instanceof RetriesExceededError));
+            assert.notEqual(error.name, `RetriesExceededError`);
         }
     });
 
@@ -368,7 +368,7 @@ suite(`Integration Tests`, () => {
             assert.fail();
         }
         catch (error) {
-            assert(error instanceof DownloadCanceledError);
+            assert.equal(error.name, `DownloadCanceledError`);
         }
         const downloadedItems = await fileDownloader.listDownloadedItems(MockExtensionContext);
         assert.equal(downloadedItems.length, 0);
