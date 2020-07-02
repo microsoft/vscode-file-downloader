@@ -1,5 +1,8 @@
+# File Downloader Extension
 
-# Contributing
+This extension surfaces an API usable by other extensions that downloads a file whose URL is provided.
+
+## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
