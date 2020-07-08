@@ -7,8 +7,6 @@ import { Readable, Writable } from "stream";
 import { CancellationToken, ExtensionContext, Uri } from "vscode";
 import { v4 as uuid } from "uuid";
 import { rimrafAsync } from "./utility/FileSystem";
-import ChecksumManager from "./checksum/ChecksumManager";
-import IChecksumManager from "./checksum/IChecksumManager";
 import IFileDownloader from "./IFileDownloader";
 import IHttpRequestHandler from "./networking/IHttpRequestHandler";
 import ILogger from "./logging/ILogger";
@@ -24,8 +22,6 @@ export interface FileDownloadSettings {
     timeoutInMs?: number;
     retries?: number;
     retryDelayInMs?: number;
-    checksum?: string;
-    checksumAlgorithm?: string;
     shouldUnzip?: boolean;
 }
 
@@ -63,20 +59,6 @@ export default class FileDownloader implements IFileDownloader {
         const retries = settings?.retries ?? DefaultRetries;
         const retryDelayInMs = settings?.retryDelayInMs ?? DefaultRetryDelayInMs;
 
-        const streams: (NodeJS.ReadableStream | NodeJS.WritableStream | NodeJS.ReadWriteStream)[] = [];
-
-        let checksumManager: IChecksumManager;
-        if (settings?.checksum != null && settings.checksumAlgorithm != null) {
-            checksumManager = ChecksumManager(settings.checksumAlgorithm);
-            streams.push(checksumManager.passThroughStream);
-        }
-        else if (settings?.checksum != null) {
-            throw new Error(`Provided checksum but didn't specify checksum algorithm.`);
-        }
-        else if (settings?.checksumAlgorithm != null) {
-            throw new Error(`Specified checksum algorithm but didn't provide checksum to check against.`);
-        }
-
         const downloadStream: Readable = await this._requestHandler.get(
             url.toString(),
             timeoutInMs,
@@ -85,35 +67,19 @@ export default class FileDownloader implements IFileDownloader {
             cancellationToken,
             onDownloadProgressChange
         );
-        // Add to front of array, since pipeline() requires the readable stream to be the first element
-        streams.unshift(downloadStream);
 
         const writeStream: Writable = settings?.shouldUnzip ?? false
             ? ZipDecompressor(tempFileDownloadPath)
             : fs.createWriteStream(tempFileDownloadPath);
-        streams.push(writeStream);
 
         // Start the download and wait for it to completely finish writing to disk
-        const pipelinePromise = pipelineAsync(streams);
+        const pipelinePromise = pipelineAsync([downloadStream, writeStream]);
         const writeStreamClosePromise = new Promise(resolve => writeStream.on(`close`, resolve));
         await Promise.all([pipelinePromise, writeStreamClosePromise]);
 
         if (cancellationToken?.isCancellationRequested ?? false) {
             await rimrafAsync(tempFileDownloadPath);
             throw new DownloadCanceledError();
-        }
-
-        if (checksumManager! != null) {
-            this._logger.log(`Computing checksum...`);
-            const hash = checksumManager.finalize();
-            if (hash.toUpperCase() !== settings?.checksum?.toUpperCase()) {
-                const message = `Checksums didn't match: Expected ${settings?.checksum}, downloaded ${hash}`;
-                this._logger.log(message);
-                throw new Error(message);
-            }
-            else {
-                this._logger.log(`Checksums matched!`);
-            }
         }
 
         // If the file/folder already exists, remove it now
