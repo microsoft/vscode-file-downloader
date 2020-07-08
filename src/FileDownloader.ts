@@ -73,6 +73,7 @@ export default class FileDownloader implements IFileDownloader {
             : fs.createWriteStream(tempFileDownloadPath);
 
         // Start the download and wait for it to completely finish writing to disk
+        // The first element in the pipeline must be the readableStream and the last element must be the writableStream
         const pipelinePromise = pipelineAsync([downloadStream, writeStream]);
         const writeStreamClosePromise = new Promise(resolve => writeStream.on(`close`, resolve));
         await Promise.all([pipelinePromise, writeStreamClosePromise]);
