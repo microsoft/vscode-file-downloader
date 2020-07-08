@@ -5,7 +5,10 @@
     "publisher": "mindaro",
     "license": "MIT",
     "version": "1.0.0",
-    "repository": "github:microsoft/vscode-file-downloader",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/microsoft/vscode-file-downloader.git"
+    },
     "engines": {
         "vscode": "^1.41.0"
     },

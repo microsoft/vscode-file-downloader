@@ -7,7 +7,6 @@ import * as path from "path";
 import { ExtensionContext, extensions, Uri, window, CancellationTokenSource } from "vscode";
 import IFileDownloader from "../../IFileDownloader";
 import { rimrafAsync } from "../../utility/FileSystem";
-import { RetriesExceededError, DownloadCanceledError } from "../../utility/Errors";
 
 /**
  * These tests will download files to C:\Users\<user>\AppData\Local\Programs\Microsoft VS Code\test-downloads\ and
@@ -18,8 +17,6 @@ const MockExtensionContext = { globalStoragePath: MockGlobalStoragePath } as Ext
 
 const TestDownloadUri = Uri.parse(`https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`);
 const TestDownloadFilename = `test.pdf`;
-const TestDownloadSha256 = `3df79d34abbca99308e79cb94461c1893582604d68329a41fd4bec1885e6adb4`;
-const TestDownloadMd5 = `2942bfabb3d05332b66eb128e0842cff`;
 
 suite(`Integration Tests`, () => {
     window.showInformationMessage(`Start all tests.`);
@@ -206,100 +203,6 @@ suite(`Integration Tests`, () => {
         );
         await fileDownloader.deleteItem(`cascadia`, MockExtensionContext);
         assert.deepStrictEqual(await fileDownloader.listDownloadedItems(MockExtensionContext), []);
-    });
-
-    test(`Sha256 checksum`, async () => {
-        await assert.doesNotReject(
-            fileDownloader.downloadFile(
-                TestDownloadUri,
-                TestDownloadFilename,
-                MockExtensionContext,
-                /* cancellationToken */ undefined,
-                /* onDownloadProgressChange */ undefined,
-                {
-                    checksum: TestDownloadSha256,
-                    checksumAlgorithm: `sha256`
-                }
-            )
-        );
-    });
-
-    test(`Md5 checksum`, async () => {
-        await assert.doesNotReject(
-            fileDownloader.downloadFile(
-                TestDownloadUri,
-                TestDownloadFilename,
-                MockExtensionContext,
-                /* cancellationToken */ undefined,
-                /* onDownloadProgressChange */ undefined,
-                {
-                    checksum: TestDownloadMd5,
-                    checksumAlgorithm: `md5`
-                }
-            )
-        );
-    });
-
-    test(`Incorrect checksum`, async () => {
-        await assert.rejects(
-            fileDownloader.downloadFile(
-                TestDownloadUri,
-                TestDownloadFilename,
-                MockExtensionContext,
-                /* cancellationToken */ undefined,
-                /* onDownloadProgressChange */ undefined,
-                {
-                    checksum: TestDownloadMd5,
-                    checksumAlgorithm: `sha256`
-                }
-            )
-        );
-    });
-
-    test(`Checksum with no algorithm`, async () => {
-        await assert.rejects(
-            fileDownloader.downloadFile(
-                TestDownloadUri,
-                TestDownloadFilename,
-                MockExtensionContext,
-                /* cancellationToken */ undefined,
-                /* onDownloadProgressChange */ undefined,
-                {
-                    checksum: TestDownloadMd5
-                }
-            )
-        );
-    });
-
-    test(`Algorithm with no checksum`, async () => {
-        await assert.rejects(
-            fileDownloader.downloadFile(
-                TestDownloadUri,
-                TestDownloadFilename,
-                MockExtensionContext,
-                /* cancellationToken */ undefined,
-                /* onDownloadProgressChange */ undefined,
-                {
-                    checksumAlgorithm: `md5`
-                }
-            )
-        );
-    });
-
-    test(`Incorrect hashing algorithm`, async () => {
-        await assert.rejects(
-            fileDownloader.downloadFile(
-                TestDownloadUri,
-                TestDownloadFilename,
-                MockExtensionContext,
-                /* cancellationToken */ undefined,
-                /* onDownloadProgressChange */ undefined,
-                {
-                    checksum: TestDownloadMd5,
-                    checksumAlgorithm: `abcdefg`
-                }
-            )
-        );
     });
 
     test(`Uri with no scheme`, async () => {
