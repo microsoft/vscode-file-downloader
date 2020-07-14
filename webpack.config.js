@@ -1,8 +1,12 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 // @ts-check
 
 'use strict';
 
 const path = require('path');
+const LicenseCheckerWebpackPlugin = require("license-checker-webpack-plugin");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
@@ -33,6 +37,7 @@ const config = {
                 ]
             }
         ]
-    }
+    },
+    plugins: [new LicenseCheckerWebpackPlugin({ outputFilename: "ThirdPartyNotices.txt", override: {"buffers@0.1.1": { licenseName: "MIT/X11" }} })]
 };
 module.exports = config;

@@ -2,7 +2,7 @@
     "name": "file-downloader",
     "displayName": "File Downloader",
     "description": "Exposes an API that allows other extensions to download files.",
-    "publisher": "mindaro",
+    "publisher": "mindaro-dev",
     "license": "MIT",
     "version": "1.0.0",
     "repository": {
@@ -44,6 +44,7 @@
         "eslint-plugin-prefer-arrow": "^1.2.1",
         "eslint-plugin-tslint": "^3.1.0",
         "glob": "^7.1.2",
+        "license-checker-webpack-plugin": "^0.1.5",
         "mocha": "^7.0.2",
         "ts-loader": "^7.0.5",
         "typescript": "^3.5.3",
