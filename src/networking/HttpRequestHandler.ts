@@ -58,8 +58,6 @@ export default class HttpRequestHandler implements IHttpRequestHandler {
         onDownloadProgressChange?: (downloadedBytes: number, totalBytes: number) => void
     ): Promise<Readable> {
         const options: AxiosRequestConfig = {
-            url: url,
-            method: `get`,
             timeout: timeoutInMs,
             responseType: `stream`
         };
@@ -73,10 +71,13 @@ export default class HttpRequestHandler implements IHttpRequestHandler {
 
         let response: AxiosResponse<Readable> | undefined;
         try {
-            response = await axios(options);
+            response = await axios.get(url, options);
+            if (response === undefined) {
+                throw new Error(`Undefined response received when downloading from '${url}'`);
+            }
         }
         catch (error) {
-            this._logger.error(error.message);
+            this._logger.error(`${error.message}. Technical details: ${JSON.stringify(error)}`);
             throw error;
         }
 
