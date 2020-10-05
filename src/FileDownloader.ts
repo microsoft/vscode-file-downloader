@@ -3,7 +3,6 @@
 
 import * as fs from "fs";
 import * as path from "path";
-//import * as vscode from "vscode";
 import * as extractZip from 'extract-zip';
 import { CancellationToken, ExtensionContext, Uri, commands} from "vscode";
 import { v4 as uuid } from "uuid";
