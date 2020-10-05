@@ -88,20 +88,22 @@ export default class HttpRequestHandler implements IHttpRequestHandler {
                 downloadStream.destroy();
             });
         }
+        // We should not feed of the data handler here if we are goign to pipe of the downloadStream later on. this forks the pipe and creates problem e.g. FILE_ENDED, PREMATURE_CLOSE
+        // https://nodejs.org/api/stream.html#stream_choose_one_api_style
+        // We should make this progress reporter code a trasnform pipe and chain it before the unzipper.
+        // if (onDownloadProgressChange != null) {
+        //     const headers: { [key: string]: any } = response.headers;
+        //     const contentLength = parseInt(headers[`content-length`], 10);
+        //     const totalBytes = contentLength as number ?? undefined;
+        //     let downloadedBytes = 0;
 
-        if (onDownloadProgressChange != null) {
-            const headers: { [key: string]: any } = response.headers;
-            const contentLength = parseInt(headers[`content-length`], 10);
-            const totalBytes = contentLength as number ?? undefined;
-            let downloadedBytes = 0;
-
-            downloadStream.on(`data`, (chunk: Buffer) => {
-                downloadedBytes += chunk.length;
-                if (onDownloadProgressChange != null) {
-                    onDownloadProgressChange(downloadedBytes, totalBytes);
-                }
-            });
-        }
+        //     downloadStream.on(`data`, (chunk: Buffer) => {
+        //         downloadedBytes += chunk.length;
+        //         if (onDownloadProgressChange != null) {
+        //             onDownloadProgressChange(downloadedBytes, totalBytes);
+        //         }
+        //     });
+        // }
 
         return downloadStream;
     }
