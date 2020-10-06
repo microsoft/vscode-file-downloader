@@ -71,7 +71,7 @@ export default class FileDownloader implements IFileDownloader {
                 else{
                     clearInterval(progressTimerId);
                 }
-            }, 500);
+            }, 1500);
 
             // Download the file
             const location = await commands.executeCommand(`_workbench.downloadResource`, Uri.parse(url.toString())) as Uri;
