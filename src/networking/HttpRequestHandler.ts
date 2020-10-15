@@ -59,7 +59,8 @@ export default class HttpRequestHandler implements IHttpRequestHandler {
     ): Promise<Readable> {
         const options: AxiosRequestConfig = {
             timeout: timeoutInMs,
-            responseType: `stream`
+            responseType: `stream`,
+            proxy: false // Disabling axios proxy support allows VS Code proxy settings to take effect.
         };
 
         if (cancellationToken != null) {
@@ -88,9 +89,11 @@ export default class HttpRequestHandler implements IHttpRequestHandler {
                 downloadStream.destroy();
             });
         }
-        // We should not feed of the data handler here if we are goign to pipe of the downloadStream later on. this forks the pipe and creates problem e.g. FILE_ENDED, PREMATURE_CLOSE
+
+        // We should not feed of the data handler here if we are going to pipe the downloadStream later on.
+        // Doing this forks the pipe and creates problem e.g. FILE_ENDED, PREMATURE_CLOSE
         // https://nodejs.org/api/stream.html#stream_choose_one_api_style
-        // We should make this progress reporter code a trasnform pipe and chain it before the unzipper.
+        // We should make this progress reporter code a transform pipe and place it between the downloadStream and the unzipper.
         // if (onDownloadProgressChange != null) {
         //     const headers: { [key: string]: any } = response.headers;
         //     const contentLength = parseInt(headers[`content-length`], 10);

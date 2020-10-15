@@ -3,7 +3,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import * as extractZip from 'extract-zip';
+import { Readable, Writable } from "stream";
 import { CancellationToken, ExtensionContext, Uri, commands} from "vscode";
 import { v4 as uuid } from "uuid";
 import { rimrafAsync } from "./utility/FileSystem";
@@ -11,6 +11,8 @@ import IFileDownloader from "./IFileDownloader";
 import IHttpRequestHandler from "./networking/IHttpRequestHandler";
 import ILogger from "./logging/ILogger";
 import { DownloadCanceledError, FileNotFoundError } from "./utility/Errors";
+import ZipDecompressor from "./compression/ZipDecompressor";
+import { pipelineAsync } from "./utility/Stream";
 
 const DefaultTimeoutInMs = 5000;
 const DefaultRetries = 5;
@@ -56,10 +58,7 @@ export default class FileDownloader implements IFileDownloader {
         const timeoutInMs = settings?.timeoutInMs ?? DefaultTimeoutInMs;
         const retries = settings?.retries ?? DefaultRetries;
         const retryDelayInMs = settings?.retryDelayInMs ?? DefaultRetryDelayInMs;
-
-        // Everything inside this try is a dirty fix to try to make things more reliable. A better fix using piped streams properly is needed.
         try{
-            // Fake report progress code while we wait for the real fix
             let progress = 0;
             const progressTimerId = setInterval(() => {
                 if (progress <= 100) {
@@ -73,34 +72,29 @@ export default class FileDownloader implements IFileDownloader {
                 }
             }, 1500);
 
-            // Download the file
-            const location = await commands.executeCommand(`_workbench.downloadResource`, Uri.parse(url.toString())) as Uri;
+            const downloadStream: Readable = await this._requestHandler.get(
+                url.toString(),
+                timeoutInMs,
+                retries,
+                retryDelayInMs,
+                cancellationToken,
+                onDownloadProgressChange
+            );
 
-            // Unzip it or just copy it over
-            if(await fs.existsSync(location.fsPath)){
-                if(settings?.shouldUnzip ?? false){
-                    await extractZip(location.fsPath, { dir: tempFileDownloadPath });
-                }
-                else{
-                    await fs.copyFile(location.fsPath, tempFileDownloadPath, (error)=>{
-                        if(error){
-                            this._logger.error(`${error?.message}. Technical details: ${JSON.stringify(error)}`);
-                            throw error;
-                        }
-                    });
-                }
-                // Remove the temp file downloaded by _workbench.downloadResource
-                await rimrafAsync(location.fsPath);
-                // Set progress to 100%
-                if(onDownloadProgressChange != null){
-                    clearInterval(progressTimerId);
-                    onDownloadProgressChange(100,100);
-                }
-            }
-            else{
-                const err = new Error(`Failed to download file ${url.toString()}.`);
-                this._logger.error(err.message);
-                throw err;
+            const writeStream: Writable = settings?.shouldUnzip ?? false
+                ? ZipDecompressor(tempFileDownloadPath)
+                : fs.createWriteStream(tempFileDownloadPath);
+
+            // Start the download and wait for it to completely finish writing to disk
+            // The first element in the pipeline must be the readableStream and the last element must be the writableStream
+            const pipelinePromise = pipelineAsync([downloadStream, writeStream]);
+            const writeStreamClosePromise = new Promise(resolve => writeStream.on(`close`, resolve));
+            await Promise.all([pipelinePromise, writeStreamClosePromise]);
+
+            // Set progress to 100%
+            if(onDownloadProgressChange != null){
+                clearInterval(progressTimerId);
+                onDownloadProgressChange(100,100);
             }
         }
         catch (error) {
