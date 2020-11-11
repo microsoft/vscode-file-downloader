@@ -58,20 +58,20 @@ export default class FileDownloader implements IFileDownloader {
         const timeoutInMs = settings?.timeoutInMs ?? DefaultTimeoutInMs;
         const retries = settings?.retries ?? DefaultRetries;
         const retryDelayInMs = settings?.retryDelayInMs ?? DefaultRetryDelayInMs;
-        try{
-            let progress = 0;
-            const progressTimerId = setInterval(() => {
-                if (progress <= 100) {
-                    // TODO: the whole timer should be under this if.
-                    if(onDownloadProgressChange != null){
-                        onDownloadProgressChange(progress++, 100);
-                    }
+        let progress = 0;
+        const progressTimerId = setInterval(() => {
+            if (progress <= 100) {
+                // TODO: the whole timer should be under this if.
+                if(onDownloadProgressChange != null){
+                    onDownloadProgressChange(progress++, 100);
                 }
-                else{
-                    clearInterval(progressTimerId);
-                }
-            }, 1500);
+            }
+            else{
+                clearInterval(progressTimerId);
+            }
+        }, 1500);
 
+        try{
             const downloadStream: Readable = await this._requestHandler.get(
                 url.toString(),
                 timeoutInMs,
@@ -99,6 +99,7 @@ export default class FileDownloader implements IFileDownloader {
         }
         catch (error) {
             this._logger.error(`${error.message}. Technical details: ${JSON.stringify(error)}`);
+            clearInterval(progressTimerId);
             throw error;
         }
 
