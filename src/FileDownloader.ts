@@ -58,16 +58,17 @@ export default class FileDownloader implements IFileDownloader {
         const timeoutInMs = settings?.timeoutInMs ?? DefaultTimeoutInMs;
         const retries = settings?.retries ?? DefaultRetries;
         const retryDelayInMs = settings?.retryDelayInMs ?? DefaultRetryDelayInMs;
-        try{
-            let progress = 0;
-            const progressTimerId = setInterval(() => {
+        let progress = 0;
+        let progressTimerId: any;
+        try {
+            progressTimerId = setInterval(() => {
                 if (progress <= 100) {
                     // TODO: the whole timer should be under this if.
-                    if(onDownloadProgressChange != null){
+                    if (onDownloadProgressChange != null) {
                         onDownloadProgressChange(progress++, 100);
                     }
                 }
-                else{
+                else {
                     clearInterval(progressTimerId);
                 }
             }, 1500);
@@ -92,13 +93,16 @@ export default class FileDownloader implements IFileDownloader {
             await Promise.all([pipelinePromise, writeStreamClosePromise]);
 
             // Set progress to 100%
-            if(onDownloadProgressChange != null){
+            if (onDownloadProgressChange != null) {
                 clearInterval(progressTimerId);
                 onDownloadProgressChange(100,100);
             }
         }
         catch (error) {
             this._logger.error(`${error.message}. Technical details: ${JSON.stringify(error)}`);
+            if (progressTimerId != null) {
+                clearInterval(progressTimerId);
+            }
             throw error;
         }
 
