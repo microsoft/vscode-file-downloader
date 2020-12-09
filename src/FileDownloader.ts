@@ -3,8 +3,8 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import * as rimraf from "rimraf";
 import { Readable, Writable } from "stream";
+import * as rimraf from "rimraf";
 import { CancellationToken, ExtensionContext, Uri } from "vscode";
 import { v4 as uuid } from "uuid";
 import { rimrafAsync } from "./utility/FileSystem";
@@ -120,13 +120,13 @@ export default class FileDownloader implements IFileDownloader {
         // If the file/folder already exists, remove it now
         await rimrafAsync(fileDownloadPath, rimrafOptions);
 
-        const renameDonwloadedFileAsyncFn = async (): Promise<Uri> => {
+        const renameDownloadedFileAsyncFn = async (): Promise<Uri> => {
             // Move the temp file/folder to its permanent location and return it
             await fs.promises.rename(tempFileDownloadPath, fileDownloadPath);
             return Uri.file(fileDownloadPath);
         };
 
-        return RetryUtility.exponentialRetryAsync(renameDonwloadedFileAsyncFn, retries, retryDelayInMs);
+        return RetryUtility.exponentialRetryAsync(renameDownloadedFileAsyncFn, retries, retryDelayInMs);
     }
 
     public async listDownloadedItems(context: ExtensionContext): Promise<Uri[]> {
