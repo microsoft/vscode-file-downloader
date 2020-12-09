@@ -12,7 +12,7 @@ export class RetryUtility {
             }
             else {
                 await new Promise((resolve): void => {
-                  setTimeout(resolve, delayInMs);
+                    setTimeout(resolve, delayInMs);
                 });
                 return this.exponentialRetryAsync(requestFn, retries - 1, delayInMs * 2);
             }

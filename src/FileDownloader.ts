@@ -5,7 +5,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as rimraf from "rimraf";
 import { Readable, Writable } from "stream";
-import { CancellationToken, ExtensionContext, Uri, commands} from "vscode";
+import { CancellationToken, ExtensionContext, Uri } from "vscode";
 import { v4 as uuid } from "uuid";
 import { rimrafAsync } from "./utility/FileSystem";
 import IFileDownloader from "./IFileDownloader";
@@ -126,7 +126,7 @@ export default class FileDownloader implements IFileDownloader {
             return Uri.file(fileDownloadPath);
         };
 
-        return await RetryUtility.exponentialRetryAsync(renameDonwloadedFileAsyncFn, retries, retryDelayInMs);
+        return RetryUtility.exponentialRetryAsync(renameDonwloadedFileAsyncFn, retries, retryDelayInMs);
     }
 
     public async listDownloadedItems(context: ExtensionContext): Promise<Uri[]> {
