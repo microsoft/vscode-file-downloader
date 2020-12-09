@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as util from "util";
+import { promisify } from "util";
 import * as rimraf from "rimraf";
 
-export const rimrafAsync = util.promisify(rimraf.sync);
+export const rimrafAsync = promisify(rimraf.sync);
