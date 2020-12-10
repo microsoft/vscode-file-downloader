@@ -126,7 +126,7 @@ export default class FileDownloader implements IFileDownloader {
             return RetryUtility.exponentialRetryAsync(renameDownloadedFileAsyncFn, retries, retryDelayInMs);
         }
         catch (error) {
-            this._logger.error(`${error.message}. Technical details: ${JSON.stringify(error)}`);
+            this._logger.error(`Failed during post download operation with error: ${error.message}. Technical details: ${JSON.stringify(error)}`);
             throw error;
         }
     }
