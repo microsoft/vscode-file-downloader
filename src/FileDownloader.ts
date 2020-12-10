@@ -60,10 +60,6 @@ export default class FileDownloader implements IFileDownloader {
         const timeoutInMs = settings?.timeoutInMs ?? DefaultTimeoutInMs;
         const retries = settings?.retries ?? DefaultRetries;
         const retryDelayInMs = settings?.retryDelayInMs ?? DefaultRetryDelayInMs;
-        const rimrafOptions: rimraf.Options = {
-            emfileWait: retries,
-            maxBusyTries: retries
-        };
         let progress = 0;
         let progressTimerId: any;
         try {
@@ -113,20 +109,26 @@ export default class FileDownloader implements IFileDownloader {
         }
 
         if (cancellationToken?.isCancellationRequested ?? false) {
-            await rimrafAsync(tempFileDownloadPath, rimrafOptions);
+            await rimrafAsync(tempFileDownloadPath);
             throw new DownloadCanceledError();
         }
 
-        // If the file/folder already exists, remove it now
-        await rimrafAsync(fileDownloadPath, rimrafOptions);
+        try {
+            // If the file/folder already exists, remove it now
+            await rimrafAsync(fileDownloadPath);
 
-        const renameDownloadedFileAsyncFn = async (): Promise<Uri> => {
-            // Move the temp file/folder to its permanent location and return it
-            await fs.promises.rename(tempFileDownloadPath, fileDownloadPath);
-            return Uri.file(fileDownloadPath);
-        };
+            const renameDownloadedFileAsyncFn = async (): Promise<Uri> => {
+                // Move the temp file/folder to its permanent location and return it
+                await fs.promises.rename(tempFileDownloadPath, fileDownloadPath);
+                return Uri.file(fileDownloadPath);
+            };
 
-        return RetryUtility.exponentialRetryAsync(renameDownloadedFileAsyncFn, retries, retryDelayInMs);
+            return RetryUtility.exponentialRetryAsync(renameDownloadedFileAsyncFn, retries, retryDelayInMs);
+        }
+        catch (error) {
+            this._logger.error(`${error.message}. Technical details: ${JSON.stringify(error)}`);
+            throw error;
+        }
     }
 
     public async listDownloadedItems(context: ExtensionContext): Promise<Uri[]> {
@@ -173,10 +175,10 @@ export default class FileDownloader implements IFileDownloader {
     }
 
     public async deleteItem(filename: string, context: ExtensionContext): Promise<void> {
-        await rimrafAsync(path.join(FileDownloader.getDownloadsStoragePath(context), filename), /*rimraf.Options*/{});
+        await rimrafAsync(path.join(FileDownloader.getDownloadsStoragePath(context), filename));
     }
 
     public async deleteAllItems(context: ExtensionContext): Promise<void> {
-        await rimrafAsync(FileDownloader.getDownloadsStoragePath(context), /*rimraf.Options*/{});
+        await rimrafAsync(FileDownloader.getDownloadsStoragePath(context));
     }
 }
