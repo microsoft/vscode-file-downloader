@@ -4,7 +4,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import { Readable, Writable } from "stream";
-import { CancellationToken, ExtensionContext, Uri, commands} from "vscode";
+import * as rimraf from "rimraf";
+import { CancellationToken, ExtensionContext, Uri } from "vscode";
 import { v4 as uuid } from "uuid";
 import { rimrafAsync } from "./utility/FileSystem";
 import IFileDownloader from "./IFileDownloader";
@@ -13,6 +14,7 @@ import ILogger from "./logging/ILogger";
 import { DownloadCanceledError, FileNotFoundError } from "./utility/Errors";
 import ZipDecompressor from "./compression/ZipDecompressor";
 import { pipelineAsync } from "./utility/Stream";
+import { RetryUtility } from "./utility/RetryUtility";
 
 const DefaultTimeoutInMs = 5000;
 const DefaultRetries = 5;
@@ -58,6 +60,10 @@ export default class FileDownloader implements IFileDownloader {
         const timeoutInMs = settings?.timeoutInMs ?? DefaultTimeoutInMs;
         const retries = settings?.retries ?? DefaultRetries;
         const retryDelayInMs = settings?.retryDelayInMs ?? DefaultRetryDelayInMs;
+        const rimrafOptions: rimraf.Options = {
+            emfileWait: retries,
+            maxBusyTries: retries
+        };
         let progress = 0;
         let progressTimerId: any;
         try {
@@ -107,15 +113,20 @@ export default class FileDownloader implements IFileDownloader {
         }
 
         if (cancellationToken?.isCancellationRequested ?? false) {
-            await rimrafAsync(tempFileDownloadPath);
+            await rimrafAsync(tempFileDownloadPath, rimrafOptions);
             throw new DownloadCanceledError();
         }
 
         // If the file/folder already exists, remove it now
-        await rimrafAsync(fileDownloadPath);
-        // Move the temp file/folder to its permanent location and return it
-        await fs.promises.rename(tempFileDownloadPath, fileDownloadPath);
-        return Uri.file(fileDownloadPath);
+        await rimrafAsync(fileDownloadPath, rimrafOptions);
+
+        const renameDownloadedFileAsyncFn = async (): Promise<Uri> => {
+            // Move the temp file/folder to its permanent location and return it
+            await fs.promises.rename(tempFileDownloadPath, fileDownloadPath);
+            return Uri.file(fileDownloadPath);
+        };
+
+        return RetryUtility.exponentialRetryAsync(renameDownloadedFileAsyncFn, retries, retryDelayInMs);
     }
 
     public async listDownloadedItems(context: ExtensionContext): Promise<Uri[]> {
@@ -162,10 +173,10 @@ export default class FileDownloader implements IFileDownloader {
     }
 
     public async deleteItem(filename: string, context: ExtensionContext): Promise<void> {
-        await rimrafAsync(path.join(FileDownloader.getDownloadsStoragePath(context), filename));
+        await rimrafAsync(path.join(FileDownloader.getDownloadsStoragePath(context), filename), /*rimraf.Options*/{});
     }
 
     public async deleteAllItems(context: ExtensionContext): Promise<void> {
-        await rimrafAsync(FileDownloader.getDownloadsStoragePath(context));
+        await rimrafAsync(FileDownloader.getDownloadsStoragePath(context), /*rimraf.Options*/{});
     }
 }

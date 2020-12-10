@@ -5,7 +5,7 @@ import { Readable } from "stream";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { CancellationToken } from "vscode";
 import ILogger from "../logging/ILogger";
-import { RetriesExceededError, DownloadCanceledError } from "../utility/Errors";
+import { RetryUtility } from "../utility/RetryUtility";
 import IHttpRequestHandler from "./IHttpRequestHandler";
 
 export default class HttpRequestHandler implements IHttpRequestHandler {
@@ -25,30 +25,13 @@ export default class HttpRequestHandler implements IHttpRequestHandler {
             cancellationToken,
             onDownloadProgressChange
         );
-        return this.exponentialRetryHttpRequest(requestFn, retries, retryDelayInMs);
-    }
-
-    private async exponentialRetryHttpRequest(
-        requestFn: () => Promise<Readable>,
-        retries: number,
-        delayInMs: number
-    ): Promise<Readable> {
-        try {
-            return await requestFn();
-        }
-        catch (error) {
-            if (retries === 0) {
-                throw new RetriesExceededError();
-            }
-            const statusCode = error?.response?.status;
+        const errorHandlerFn = (error: Error) => {
+            const statusCode = (error as any)?.response?.status;
             if (statusCode != null && 400 <= statusCode && statusCode < 500) {
                 throw error;
             }
-            else {
-                await new Promise(resolve => setTimeout(resolve, delayInMs));
-                return this.exponentialRetryHttpRequest(requestFn, retries - 1, delayInMs * 2);
-            }
-        }
+        };
+        return RetryUtility.exponentialRetryAsync(requestFn, retries, retryDelayInMs, errorHandlerFn);
     }
 
     private async getRequestHelper(
