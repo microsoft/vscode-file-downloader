@@ -4,4 +4,4 @@
 import { promisify } from "util";
 import * as rimraf from "rimraf";
 
-export const rimrafAsync = promisify(rimraf.sync);
+export const rimrafAsync = promisify(rimraf);
