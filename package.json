@@ -54,9 +54,9 @@
         "webpack-cli": "^3.3.12"
     },
     "dependencies": {
-        "axios": "^0.20.0",
         "extract-zip": "^2.0.1",
         "lodash": "^4.17.19",
+        "axios": "^0.21.1",
         "rimraf": "^3.0.2",
         "uuid": "^8.0.0"
     }
