@@ -90,14 +90,17 @@ export default class FileDownloader implements IFileDownloader {
             const writeStreamClosePromise = new Promise(resolve => writeStream.on(`close`, resolve));
             await Promise.all([pipelinePromise, writeStreamClosePromise]);
 
-            // Check if the zip file has been downloaded
-            await fs.promises.access(tempZipFileDownloadPath);
-            if (settings?.shouldUnzip ?? false) {
-                await extractZip(tempZipFileDownloadPath, { dir: tempFileDownloadPath });
-            }
-            else {
-                await fs.promises.copyFile(tempZipFileDownloadPath, tempFileDownloadPath);
-            }
+            const unzipDownloadedFileAsyncFn = async (): Promise<void> => {
+                await fs.promises.access(tempZipFileDownloadPath);
+                if (settings?.shouldUnzip ?? false) {
+                    await extractZip(tempZipFileDownloadPath, { dir: tempFileDownloadPath });
+                }
+                else {
+                    await fs.promises.copyFile(tempZipFileDownloadPath, tempFileDownloadPath);
+                }
+            };
+
+            await RetryUtility.exponentialRetryAsync(unzipDownloadedFileAsyncFn, retries, retryDelayInMs);
 
             // Set progress to 100%
             if (onDownloadProgressChange != null) {
@@ -111,6 +114,14 @@ export default class FileDownloader implements IFileDownloader {
                 clearInterval(progressTimerId);
             }
             throw error;
+        }
+        finally {
+            try {
+                await rimrafAsync(tempZipFileDownloadPath);
+            }
+            catch (error) {
+                this._logger.warn(`Failed deleting zip file at: ${tempZipFileDownloadPath} with error: ${JSON.stringify(error)}`);
+            }
         }
 
         if (cancellationToken?.isCancellationRequested ?? false) {
@@ -128,7 +139,7 @@ export default class FileDownloader implements IFileDownloader {
                 return Uri.file(fileDownloadPath);
             };
 
-            return RetryUtility.exponentialRetryAsync(renameDownloadedFileAsyncFn, retries * 2, retryDelayInMs);
+            return RetryUtility.exponentialRetryAsync(renameDownloadedFileAsyncFn, retries, retryDelayInMs);
         }
         catch (error) {
             this._logger.error(`Failed during post download operation with error: ${error.message}. Technical details: ${JSON.stringify(error)}`);
