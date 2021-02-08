@@ -3,8 +3,9 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { Readable, Writable } from "stream";
-import * as rimraf from "rimraf";
+
+import { Readable } from "stream";
+import * as extractZip from 'extract-zip';
 import { CancellationToken, ExtensionContext, Uri } from "vscode";
 import { v4 as uuid } from "uuid";
 import { rimrafAsync } from "./utility/FileSystem";
@@ -12,7 +13,6 @@ import IFileDownloader from "./IFileDownloader";
 import IHttpRequestHandler from "./networking/IHttpRequestHandler";
 import ILogger from "./logging/ILogger";
 import { DownloadCanceledError, FileNotFoundError } from "./utility/Errors";
-import ZipDecompressor from "./compression/ZipDecompressor";
 import { pipelineAsync } from "./utility/Stream";
 import { RetryUtility } from "./utility/RetryUtility";
 
@@ -54,6 +54,7 @@ export default class FileDownloader implements IFileDownloader {
         const downloadsStoragePath: string = FileDownloader.getDownloadsStoragePath(context);
         // Generate a temporary filename for the download
         const tempFileDownloadPath: string = path.join(downloadsStoragePath, uuid());
+        const tempZipFileDownloadPath = `${tempFileDownloadPath}.zip`;
         const fileDownloadPath: string = path.join(downloadsStoragePath, filename);
         await fs.promises.mkdir(downloadsStoragePath, { recursive: true });
 
@@ -84,15 +85,19 @@ export default class FileDownloader implements IFileDownloader {
                 onDownloadProgressChange
             );
 
-            const writeStream: Writable = settings?.shouldUnzip ?? false
-                ? ZipDecompressor(tempFileDownloadPath)
-                : fs.createWriteStream(tempFileDownloadPath);
-
-            // Start the download and wait for it to completely finish writing to disk
-            // The first element in the pipeline must be the readableStream and the last element must be the writableStream
+            const writeStream = fs.createWriteStream(tempZipFileDownloadPath);
             const pipelinePromise = pipelineAsync([downloadStream, writeStream]);
             const writeStreamClosePromise = new Promise(resolve => writeStream.on(`close`, resolve));
             await Promise.all([pipelinePromise, writeStreamClosePromise]);
+
+            // Check if the zip file has been downloaded
+            await fs.promises.access(tempZipFileDownloadPath);
+            if (settings?.shouldUnzip ?? false) {
+                await extractZip(tempZipFileDownloadPath, { dir: tempFileDownloadPath });
+            }
+            else {
+                await fs.promises.copyFile(tempZipFileDownloadPath, tempFileDownloadPath);
+            }
 
             // Set progress to 100%
             if (onDownloadProgressChange != null) {
