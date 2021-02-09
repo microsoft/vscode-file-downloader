@@ -61,6 +61,7 @@ export default class FileDownloader implements IFileDownloader {
         const timeoutInMs = settings?.timeoutInMs ?? DefaultTimeoutInMs;
         const retries = settings?.retries ?? DefaultRetries;
         const retryDelayInMs = settings?.retryDelayInMs ?? DefaultRetryDelayInMs;
+        const shouldUnzip = settings?.shouldUnzip ?? false;
         let progress = 0;
         let progressTimerId: any;
         try {
@@ -85,22 +86,18 @@ export default class FileDownloader implements IFileDownloader {
                 onDownloadProgressChange
             );
 
-            const writeStream = fs.createWriteStream(tempZipFileDownloadPath);
+            const writeStream = fs.createWriteStream(shouldUnzip ? tempZipFileDownloadPath : tempFileDownloadPath);
             const pipelinePromise = pipelineAsync([downloadStream, writeStream]);
             const writeStreamClosePromise = new Promise(resolve => writeStream.on(`close`, resolve));
             await Promise.all([pipelinePromise, writeStreamClosePromise]);
 
-            const unzipDownloadedFileAsyncFn = async (): Promise<void> => {
-                await fs.promises.access(tempZipFileDownloadPath);
-                if (settings?.shouldUnzip ?? false) {
+            if (shouldUnzip) {
+                const unzipDownloadedFileAsyncFn = async (): Promise<void> => {
+                    await fs.promises.access(tempZipFileDownloadPath);
                     await extractZip(tempZipFileDownloadPath, { dir: tempFileDownloadPath });
-                }
-                else {
-                    await fs.promises.copyFile(tempZipFileDownloadPath, tempFileDownloadPath);
-                }
-            };
-
-            await RetryUtility.exponentialRetryAsync(unzipDownloadedFileAsyncFn, retries, retryDelayInMs);
+                };
+                await RetryUtility.exponentialRetryAsync(unzipDownloadedFileAsyncFn, retries, retryDelayInMs);
+            }
 
             // Set progress to 100%
             if (onDownloadProgressChange != null) {
@@ -116,11 +113,13 @@ export default class FileDownloader implements IFileDownloader {
             throw error;
         }
         finally {
-            try {
-                await rimrafAsync(tempZipFileDownloadPath);
-            }
-            catch (error) {
-                this._logger.warn(`Failed deleting zip file at: ${tempZipFileDownloadPath} with error: ${JSON.stringify(error)}`);
+            if (shouldUnzip) {
+                try {
+                    await rimrafAsync(tempZipFileDownloadPath);
+                }
+                catch (error) {
+                    this._logger.warn(`Failed deleting zip file at: ${tempZipFileDownloadPath} with error: ${JSON.stringify(error)}`);
+                }
             }
         }
 
