@@ -4,7 +4,7 @@
     "description": "Exposes an API that allows other extensions to download files.",
     "publisher": "mindaro-dev",
     "license": "MIT",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "repository": {
         "type": "git",
         "url": "https://github.com/microsoft/vscode-file-downloader.git"
@@ -41,6 +41,7 @@
         "eslint": "^7.3.1",
         "eslint-plugin-import": "^2.20.2",
         "eslint-plugin-jsdoc": "^25.4.1",
+        "eslint-plugin-node": "^11.1.0",
         "eslint-plugin-prefer-arrow": "^1.2.1",
         "eslint-plugin-tslint": "^3.1.0",
         "glob": "^7.1.2",
@@ -53,9 +54,9 @@
         "webpack-cli": "^3.3.12"
     },
     "dependencies": {
+        "extract-zip": "^2.0.1",
         "axios": "^0.21.1",
         "rimraf": "^3.0.2",
-        "unzipper": "^0.10.3",
         "uuid": "^8.0.0"
     }
 }
