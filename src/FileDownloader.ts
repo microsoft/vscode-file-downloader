@@ -95,6 +95,7 @@ export default class FileDownloader implements IFileDownloader {
                 const unzipDownloadedFileAsyncFn = async (): Promise<void> => {
                     await fs.promises.access(tempZipFileDownloadPath);
                     await extractZip(tempZipFileDownloadPath, { dir: tempFileDownloadPath });
+                    await rimrafAsync(tempZipFileDownloadPath);
                 };
                 await RetryUtility.exponentialRetryAsync(unzipDownloadedFileAsyncFn, retries, retryDelayInMs);
             }
@@ -111,16 +112,6 @@ export default class FileDownloader implements IFileDownloader {
                 clearInterval(progressTimerId);
             }
             throw error;
-        }
-        finally {
-            if (shouldUnzip) {
-                try {
-                    await rimrafAsync(tempZipFileDownloadPath);
-                }
-                catch (error) {
-                    this._logger.warn(`Failed deleting zip file at: ${tempZipFileDownloadPath} with error: ${JSON.stringify(error)}`);
-                }
-            }
         }
 
         if (cancellationToken?.isCancellationRequested ?? false) {
