@@ -97,7 +97,7 @@ export default class FileDownloader implements IFileDownloader {
                     await extractZip(tempZipFileDownloadPath, { dir: tempFileDownloadPath });
                     await rimrafAsync(tempZipFileDownloadPath);
                 };
-                await RetryUtility.exponentialRetryAsync(unzipDownloadedFileAsyncFn, retries, retryDelayInMs);
+                await RetryUtility.exponentialRetryAsync(unzipDownloadedFileAsyncFn, unzipDownloadedFileAsyncFn.name, retries, retryDelayInMs);
             }
 
             // Set progress to 100%
