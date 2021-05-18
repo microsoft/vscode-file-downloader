@@ -31,7 +31,7 @@ export default class HttpRequestHandler implements IHttpRequestHandler {
                 throw error;
             }
         };
-        return RetryUtility.exponentialRetryAsync(requestFn, retries, retryDelayInMs, errorHandlerFn);
+        return RetryUtility.exponentialRetryAsync(requestFn, `HttpRequestHandler.get`, retries, retryDelayInMs, errorHandlerFn);
     }
 
     private async getRequestHelper(

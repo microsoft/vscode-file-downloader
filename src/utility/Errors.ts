@@ -20,9 +20,9 @@ export class FileNotFoundError extends Error {
 }
 
 export class RetriesExceededError extends Error {
-    public constructor(error: Error) {
-        super(`Maximum number of retries exceeded. The operation failed with error: ${error.message}.`);
+    public constructor(error: Error, operationName: string) {
+        super(`Maximum number of retries exceeded. The operation '${operationName}' failed with error: ${error.message}. Technical details: ${JSON.stringify(error)}`);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = RetriesExceededError.name;
+        this.name = `${RetriesExceededError.name} for operation '${operationName}'`;
     }
 }

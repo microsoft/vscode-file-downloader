@@ -6,6 +6,7 @@ import { RetriesExceededError } from "./Errors";
 export class RetryUtility {
     public static async exponentialRetryAsync<T>(
         requestFn: () => Promise<T>,
+        operationName: string,
         retries: number,
         initialDelayInMs: number,
         errorHandlerFn?: (error: Error) => void
@@ -15,7 +16,7 @@ export class RetryUtility {
         }
         catch (error) {
             if (retries === 0) {
-                throw new RetriesExceededError(error);
+                throw new RetriesExceededError(error, operationName);
             }
 
             if (errorHandlerFn != null) {
@@ -25,7 +26,7 @@ export class RetryUtility {
             await new Promise((resolve): void => {
                 setTimeout(resolve, initialDelayInMs);
             });
-            return this.exponentialRetryAsync(requestFn, retries - 1, initialDelayInMs * 2, errorHandlerFn);
+            return this.exponentialRetryAsync(requestFn, operationName, retries - 1, initialDelayInMs * 2, errorHandlerFn);
         }
     }
 }
