@@ -15,14 +15,15 @@ export class RetryUtility {
             return await requestFn();
         }
         catch (error) {
-            if (retries === 0) {
-                throw new RetriesExceededError(error, operationName);
-            }
+            if (error instanceof Error) {
+                if (retries === 0) {
+                    throw new RetriesExceededError(error, operationName);
+                }
 
-            if (errorHandlerFn != null) {
-                errorHandlerFn(error);
+                if (errorHandlerFn != null) {
+                    errorHandlerFn(error);
+                }
             }
-
             await new Promise((resolve): void => {
                 setTimeout(resolve, initialDelayInMs);
             });

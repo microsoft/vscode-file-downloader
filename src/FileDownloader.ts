@@ -12,7 +12,7 @@ import { rimrafAsync } from "./utility/FileSystem";
 import IFileDownloader from "./IFileDownloader";
 import IHttpRequestHandler from "./networking/IHttpRequestHandler";
 import ILogger from "./logging/ILogger";
-import { DownloadCanceledError, FileNotFoundError } from "./utility/Errors";
+import { DownloadCanceledError, ErrorUtils, FileNotFoundError } from "./utility/Errors";
 import { pipelineAsync } from "./utility/Stream";
 import { RetryUtility } from "./utility/RetryUtility";
 
@@ -34,7 +34,7 @@ export default class FileDownloader implements IFileDownloader {
     ) { }
 
     private static getDownloadsStoragePath(context: ExtensionContext): string {
-        return path.join(context.globalStoragePath, `file-downloader-downloads`);
+        return path.join(context.globalStorageUri.fsPath, `file-downloader-downloads`);
     }
 
     public async downloadFile(
@@ -103,11 +103,16 @@ export default class FileDownloader implements IFileDownloader {
             // Set progress to 100%
             if (onDownloadProgressChange != null) {
                 clearInterval(progressTimerId);
-                onDownloadProgressChange(100,100);
+                onDownloadProgressChange(100, 100);
             }
         }
         catch (error) {
-            this._logger.error(`${error.message}. Technical details: ${JSON.stringify(error)}`);
+            if (error instanceof Error) {
+                this._logger.error(`${error.message}. Technical details: ${JSON.stringify(error)}`);
+            }
+            else {
+                this._logger.error(`${error}. Technical details: ${JSON.stringify(error)}`);
+            }
             if (progressTimerId != null) {
                 clearInterval(progressTimerId);
             }
@@ -132,7 +137,9 @@ export default class FileDownloader implements IFileDownloader {
             return RetryUtility.exponentialRetryAsync(renameDownloadedFileAsyncFn, renameDownloadedFileAsyncFn.name, retries, retryDelayInMs);
         }
         catch (error) {
-            this._logger.error(`Failed during post download operation with error: ${error.message}. Technical details: ${JSON.stringify(error)}`);
+            if (error instanceof Error) {
+                this._logger.error(`Failed during post download operation with error: ${error.message}. Technical details: ${JSON.stringify(error)}`);
+            }
             throw error;
         }
     }
@@ -144,7 +151,7 @@ export default class FileDownloader implements IFileDownloader {
             return filePaths.map(filePath => Uri.file(path.join(downloadsStoragePath, filePath)));
         }
         catch (error) {
-            if (error.code === `ENOENT`) {
+            if (ErrorUtils.isErrnoException(error) && error.code === `ENOENT`) {
                 return [];
             }
             else {
