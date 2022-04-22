@@ -6,6 +6,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { ExtensionContext, extensions, Uri, window, CancellationTokenSource } from "vscode";
 import IFileDownloader from "../../IFileDownloader";
+import { ErrorUtils } from "../../utility/Errors";
 import { rimrafAsync } from "../../utility/FileSystem";
 
 /**
@@ -13,7 +14,7 @@ import { rimrafAsync } from "../../utility/FileSystem";
  * delete both the files and the \test-downloads\ directory after the test is over
  */
 const MockGlobalStoragePath = path.join(process.cwd(), `/test-downloads/`);
-const MockExtensionContext = { globalStoragePath: MockGlobalStoragePath } as ExtensionContext;
+const MockExtensionContext = { globalStoragePath: MockGlobalStoragePath, globalStorageUri: Uri.file(MockGlobalStoragePath) } as ExtensionContext;
 
 const TestDownloadUri = Uri.parse(`https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`);
 const TestDownloadFilename = `test.pdf`;
@@ -24,7 +25,7 @@ suite(`Integration Tests`, () => {
     let fileDownloader: IFileDownloader;
 
     suiteSetup(async () => {
-        const downloaderExtension = extensions.getExtension(`mindaro.file-downloader`);
+        const downloaderExtension = extensions.getExtension(`mindaro-dev.file-downloader`);
         assert(downloaderExtension);
         await downloaderExtension.activate();
         fileDownloader = downloaderExtension.exports;
@@ -169,7 +170,7 @@ suite(`Integration Tests`, () => {
     test(`Decompress zip file`, async () => {
         const filePath = await fileDownloader.downloadFile(
             Uri.parse(`https://github.com/microsoft/cascadia-code/releases/download/v2005.15/CascadiaCode_2005.15.zip`),
-            `cascadia`,
+            `cascadia2`,
             MockExtensionContext,
             /* cancellationToken */ undefined,
             /* onDownloadProgressChange */ undefined,
@@ -202,7 +203,10 @@ suite(`Integration Tests`, () => {
             { shouldUnzip: true }
         );
         await fileDownloader.deleteItem(`cascadia`, MockExtensionContext);
-        assert.deepStrictEqual(await fileDownloader.listDownloadedItems(MockExtensionContext), []);
+        const items = await fileDownloader.listDownloadedItems(MockExtensionContext);
+        for (const item of items) {
+            assert(!item.fsPath.includes(`cascadia`));
+        }
     });
 
     test(`Uri with no scheme`, async () => {
@@ -235,7 +239,12 @@ suite(`Integration Tests`, () => {
             assert.fail();
         }
         catch (error) {
-            assert.equal(error.name, `RetriesExceededError`);
+            if (error instanceof Error) {
+                assert(error.name.includes(`RetriesExceededError`));
+            }
+            else {
+                assert.fail(`unexpected error type`);
+            }
         }
     });
 
@@ -249,8 +258,16 @@ suite(`Integration Tests`, () => {
             assert.fail();
         }
         catch (error) {
-            assert(error.response.status === 404);
-            assert.notEqual(error.name, `RetriesExceededError`);
+            if (error instanceof Error) {
+                if (`response` in error) {
+                    // eslint-disable-next-line @typescript-eslint/dot-notation
+                    assert(error[`response`][`status`] === 404);
+                }
+                assert.notEqual(error.name, `RetriesExceededError`);
+            }
+            else {
+                assert.fail(`unexpected error type`);
+            }
         }
     });
 
@@ -271,9 +288,16 @@ suite(`Integration Tests`, () => {
             assert.fail();
         }
         catch (error) {
-            assert.equal(error.name, `DownloadCanceledError`);
+            if (ErrorUtils.isErrnoException(error)) {
+                assert.equal(error.code, `ERR_STREAM_PREMATURE_CLOSE`);
+            }
+            else {
+                assert.fail(`unexpected error type`);
+            }
         }
         const downloadedItems = await fileDownloader.listDownloadedItems(MockExtensionContext);
-        assert.equal(downloadedItems.length, 0);
+        for (const item of downloadedItems) {
+            assert(!item.fsPath.includes(`50MB.zip`));
+        }
     });
 });

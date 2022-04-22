@@ -61,7 +61,9 @@ export default class HttpRequestHandler implements IHttpRequestHandler {
             }
         }
         catch (error) {
-            this._logger.error(`${error.message}. Technical details: ${JSON.stringify(error)}`);
+            if (error instanceof Error) {
+                this._logger.error(`${error.message}. Technical details: ${JSON.stringify(error)}`);
+            }
             throw error;
         }
 

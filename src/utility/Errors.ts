@@ -26,3 +26,10 @@ export class RetriesExceededError extends Error {
         this.name = `${RetriesExceededError.name} for operation '${operationName}'`;
     }
 }
+
+export class ErrorUtils {
+    public static isErrnoException(object: unknown): object is NodeJS.ErrnoException {
+        return Object.prototype.hasOwnProperty.call(object, `code`)
+            || Object.prototype.hasOwnProperty.call(object, `errno`);
+    }
+}
