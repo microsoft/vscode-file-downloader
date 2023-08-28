@@ -9,7 +9,7 @@ import * as extractZip from 'extract-zip';
 import { CancellationToken, ExtensionContext, Uri } from "vscode";
 import { v4 as uuid } from "uuid";
 import { rimrafAsync } from "./utility/FileSystem";
-import IFileDownloader from "./IFileDownloader";
+import IFileDownloader, { FileDownloadSettings } from "./IFileDownloader";
 import IHttpRequestHandler from "./networking/IHttpRequestHandler";
 import ILogger from "./logging/ILogger";
 import { DownloadCanceledError, ErrorUtils, FileNotFoundError } from "./utility/Errors";
@@ -19,13 +19,6 @@ import { RetryUtility } from "./utility/RetryUtility";
 const DefaultTimeoutInMs = 5000;
 const DefaultRetries = 5;
 const DefaultRetryDelayInMs = 100;
-
-export interface FileDownloadSettings {
-    timeoutInMs?: number;
-    retries?: number;
-    retryDelayInMs?: number;
-    shouldUnzip?: boolean;
-}
 
 export default class FileDownloader implements IFileDownloader {
     public constructor(
@@ -62,6 +55,7 @@ export default class FileDownloader implements IFileDownloader {
         const retries = settings?.retries ?? DefaultRetries;
         const retryDelayInMs = settings?.retryDelayInMs ?? DefaultRetryDelayInMs;
         const shouldUnzip = settings?.shouldUnzip ?? false;
+        const headers = settings?.headers;
         let progress = 0;
         let progressTimerId: any;
         try {
@@ -82,6 +76,7 @@ export default class FileDownloader implements IFileDownloader {
                 timeoutInMs,
                 retries,
                 retryDelayInMs,
+                headers,
                 cancellationToken,
                 onDownloadProgressChange
             );

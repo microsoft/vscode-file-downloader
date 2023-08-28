@@ -2,7 +2,14 @@
 // Licensed under the MIT License.
 
 import { ExtensionContext, CancellationToken, Uri } from "vscode";
-import { FileDownloadSettings } from "./FileDownloader";
+
+export interface FileDownloadSettings {
+    timeoutInMs?: number;
+    retries?: number;
+    retryDelayInMs?: number;
+    shouldUnzip?: boolean;
+    headers?: Record<string, string | number | boolean> | undefined;
+}
 
 export default interface IFileDownloader {
     downloadFile(
