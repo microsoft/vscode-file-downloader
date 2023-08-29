@@ -1,0 +1,15 @@
+{
+	"name": "VSCode File Downloader",
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+
+	"postCreateCommand": "npm install -g yo generator-code && npm install",
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"dbaeumer.vscode-eslint",
+				"amodio.tsl-problem-matcher"
+			]
+		}
+	}
+}

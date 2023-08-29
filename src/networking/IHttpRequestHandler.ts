@@ -10,6 +10,7 @@ export default interface IHttpRequestHandler {
         timeoutInMs: number,
         retries: number,
         retryDelayInMs: number,
+        headers?: Record<string, string | number | boolean>,
         cancellationToken?: CancellationToken,
         onDownloadProgressChange?: (downloadedBytes: number, totalBytes: number) => void
     ): Promise<Readable>;

@@ -5,7 +5,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import { ExtensionContext, extensions, Uri, window, CancellationTokenSource } from "vscode";
-import IFileDownloader from "../../IFileDownloader";
+import IFileDownloader, { FileDownloadSettings } from "../../IFileDownloader";
 import { ErrorUtils } from "../../utility/Errors";
 import { rimrafAsync } from "../../utility/FileSystem";
 
@@ -13,11 +13,13 @@ import { rimrafAsync } from "../../utility/FileSystem";
  * These tests will download files to C:\Users\<user>\AppData\Local\Programs\Microsoft VS Code\test-downloads\ and
  * delete both the files and the \test-downloads\ directory after the test is over
  */
-const MockGlobalStoragePath = path.join(process.cwd(), `/test-downloads/`);
+const MockGlobalStoragePath = path.join(__dirname, `/test-downloads/`);
 const MockExtensionContext = { globalStoragePath: MockGlobalStoragePath, globalStorageUri: Uri.file(MockGlobalStoragePath) } as ExtensionContext;
 
 const TestDownloadUri = Uri.parse(`https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`);
 const TestDownloadFilename = `test.pdf`;
+const TestDownloadUriWithSettings = Uri.parse(`https://api.github.com/repos/stuartleeks/pick-a-browser/releases/assets/95441770`);
+const TestDownloadFilenameWithSettings = `pick-a-browser_windows_386.zip`;
 
 suite(`Integration Tests`, () => {
     window.showInformationMessage(`Start all tests.`);
@@ -299,5 +301,23 @@ suite(`Integration Tests`, () => {
         for (const item of downloadedItems) {
             assert(!item.fsPath.includes(`50MB.zip`));
         }
+    });
+
+    test(`Simple download from GitHub`, async () => {
+        const settings: FileDownloadSettings = {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            headers: {"Accept": `application/octet-stream`, "Content-Type": `application/octet-stream`}
+        };
+
+        assert(
+            await fileDownloader.downloadFile(
+                TestDownloadUriWithSettings,
+                TestDownloadFilenameWithSettings,
+                MockExtensionContext,
+                undefined,
+                undefined,
+                settings
+            )
+        );
     });
 });

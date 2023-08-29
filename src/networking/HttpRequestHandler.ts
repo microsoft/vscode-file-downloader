@@ -16,12 +16,14 @@ export default class HttpRequestHandler implements IHttpRequestHandler {
         timeoutInMs: number,
         retries: number,
         retryDelayInMs: number,
+        headers?: Record<string, string | number | boolean>,
         cancellationToken?: CancellationToken,
         onDownloadProgressChange?: (downloadedBytes: number, totalBytes: number) => void
     ): Promise<Readable> {
         const requestFn = () => this.getRequestHelper(
             url,
             timeoutInMs,
+            headers,
             cancellationToken,
             onDownloadProgressChange
         );
@@ -37,13 +39,15 @@ export default class HttpRequestHandler implements IHttpRequestHandler {
     private async getRequestHelper(
         url: string,
         timeoutInMs: number,
+        headers?: Record<string, string | number | boolean>,
         cancellationToken?: CancellationToken,
         onDownloadProgressChange?: (downloadedBytes: number, totalBytes: number) => void
     ): Promise<Readable> {
         const options: AxiosRequestConfig = {
             timeout: timeoutInMs,
             responseType: `stream`,
-            proxy: false // Disabling axios proxy support allows VS Code proxy settings to take effect.
+            proxy: false, // Disabling axios proxy support allows VS Code proxy settings to take effect.
+            headers
         };
 
         if (cancellationToken != null) {
