@@ -13,13 +13,13 @@ import { rimrafAsync } from "../../utility/FileSystem";
  * These tests will download files to C:\Users\<user>\AppData\Local\Programs\Microsoft VS Code\test-downloads\ and
  * delete both the files and the \test-downloads\ directory after the test is over
  */
-const MockGlobalStoragePath = path.join(process.cwd(), `/test-downloads/`);
+const MockGlobalStoragePath = path.join(__dirname, `/test-downloads/`);
 const MockExtensionContext = { globalStoragePath: MockGlobalStoragePath, globalStorageUri: Uri.file(MockGlobalStoragePath) } as ExtensionContext;
 
 const TestDownloadUri = Uri.parse(`https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`);
 const TestDownloadFilename = `test.pdf`;
-const TestDownloadUriWithSettings = Uri.parse(`https://api.github.com/repos/Azure/apiops/releases/assets/120693194`);
-const TestDownloadFilenameWithSettings = `extractor.linux-x64.exe`;
+const TestDownloadUriWithSettings = Uri.parse(`https://api.github.com/repos/stuartleeks/pick-a-browser/releases/assets/95441770`);
+const TestDownloadFilenameWithSettings = `pick-a-browser_windows_386.zip`;
 
 suite(`Integration Tests`, () => {
     window.showInformationMessage(`Start all tests.`);
@@ -305,7 +305,6 @@ suite(`Integration Tests`, () => {
 
     test(`Simple download from GitHub`, async () => {
         const settings: FileDownloadSettings = {
-            timeoutInMs: 20000,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             headers: {"Accept": `application/octet-stream`, "Content-Type": `application/octet-stream`}
         };
