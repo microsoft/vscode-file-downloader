@@ -19,6 +19,7 @@ const main = async () => {
         await runTests({ extensionDevelopmentPath, extensionTestsPath });
     }
     catch (error) {
+        console.error('Failed to run tests');
         process.exit(1);
     }
 };
