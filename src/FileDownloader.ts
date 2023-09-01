@@ -120,6 +120,20 @@ export default class FileDownloader implements IFileDownloader {
             throw new DownloadCanceledError();
         }
 
+        // Make the file executable if requested
+        // File permissions are preserved after moving the file
+        try {
+            if (makeExecutable) {
+                await fs.promises.chmod(tempFileDownloadPath, 0o700);
+            }
+        }
+        catch (error) {
+            if (error instanceof Error) {
+                this._logger.error(`Failed cannot be made executable: ${error.message}. Technical details: ${JSON.stringify(error)}`);
+            }
+            throw error;
+        }
+
         try {
             // If the file/folder already exists, remove it now
             await rimrafAsync(fileDownloadPath);
@@ -127,9 +141,6 @@ export default class FileDownloader implements IFileDownloader {
             const renameDownloadedFileAsyncFn = async (): Promise<Uri> => {
                 // Move the temp file/folder to its permanent location and return it
                 await fs.promises.rename(tempFileDownloadPath, fileDownloadPath);
-                if (makeExecutable) {
-                    await fs.promises.chmod(fileDownloadPath, 0o700);
-                }
                 return Uri.file(fileDownloadPath);
             };
 
