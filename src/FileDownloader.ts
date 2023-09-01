@@ -55,6 +55,7 @@ export default class FileDownloader implements IFileDownloader {
         const retries = settings?.retries ?? DefaultRetries;
         const retryDelayInMs = settings?.retryDelayInMs ?? DefaultRetryDelayInMs;
         const shouldUnzip = settings?.shouldUnzip ?? false;
+        const makeExecutable = settings?.makeExecutable ?? false;
         const headers = settings?.headers;
         let progress = 0;
         let progressTimerId: any;
@@ -126,6 +127,9 @@ export default class FileDownloader implements IFileDownloader {
             const renameDownloadedFileAsyncFn = async (): Promise<Uri> => {
                 // Move the temp file/folder to its permanent location and return it
                 await fs.promises.rename(tempFileDownloadPath, fileDownloadPath);
+                if (makeExecutable) {
+                    await fs.promises.chmod(fileDownloadPath, 0o700);
+                }
                 return Uri.file(fileDownloadPath);
             };
 

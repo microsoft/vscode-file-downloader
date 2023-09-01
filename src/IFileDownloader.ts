@@ -25,6 +25,11 @@ export interface FileDownloadSettings {
      */
     shouldUnzip?: boolean;
     /**
+     * Whether to make the downloaded file executable.
+     * @default false
+     */
+    makeExecutable?: boolean;
+    /**
      * Additional headers to send with the request.
      * @default undefined
      * @example
