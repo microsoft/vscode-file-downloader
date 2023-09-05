@@ -31,13 +31,6 @@ jobs:
     - name: Smoke test (Mac, Windows)
       run: npm run test
       if: runner.os != 'Linux'
-    # - name: Upload coverage reports to Codecov
-    #   uses: codecov/codecov-action@def81595a67c83cbb0a42ba9b624b97f4c7deb3d #v3.1.4
-    #   with:
-    #     token: ${{ secrets.CODECOV_TOKEN }}
-    #     flags: unittests # optional
-    #     fail_ci_if_error: true # optional (default = false)
-    #     verbose: true # optional (default = false)
     - name: Package Extension
       if: matrix.os == 'ubuntu-latest'
       run: |
