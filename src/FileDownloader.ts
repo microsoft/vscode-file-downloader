@@ -122,9 +122,10 @@ export default class FileDownloader implements IFileDownloader {
 
         // Make the file executable if requested
         // File permissions are preserved after moving the file
+        // Files are downloaded with 0o644 file permissions
         try {
             if (makeExecutable) {
-                await fs.promises.chmod(tempFileDownloadPath, 0o700);
+                await fs.promises.chmod(tempFileDownloadPath, 0o744);
             }
         }
         catch (error) {
