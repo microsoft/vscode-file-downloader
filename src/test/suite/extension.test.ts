@@ -309,7 +309,7 @@ suite(`Integration Tests`, () => {
             headers: {"Accept": `application/octet-stream`, "Content-Type": `application/octet-stream`}
         };
 
-        assert(
+        const downloadedFile: Uri =
             await fileDownloader.downloadFile(
                 TestDownloadUriWithSettings,
                 TestDownloadFilenameWithSettings,
@@ -317,7 +317,43 @@ suite(`Integration Tests`, () => {
                 undefined,
                 undefined,
                 settings
-            )
-        );
+            );
+
+        assert(downloadedFile != null);
+
+        const stats = await fs.promises.stat(downloadedFile.fsPath);
+        const fileSizeInBytes = stats.size;
+        assert(fileSizeInBytes > 0);
     });
+
+    test(`Make executable`, async () => {
+        const settings: FileDownloadSettings = {
+            makeExecutable: true,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            headers: {"Accept": `application/octet-stream`, "Content-Type": `application/octet-stream`}
+        };
+
+        const downloadedFile: Uri =
+            await fileDownloader.downloadFile(
+                TestDownloadUriWithSettings,
+                TestDownloadFilenameWithSettings,
+                MockExtensionContext,
+                undefined,
+                undefined,
+                settings
+            );
+
+        assert(downloadedFile != null);
+
+        const stats = await fs.promises.stat(downloadedFile.fsPath);
+        const fileSizeInBytes = stats.size;
+        assert(fileSizeInBytes > 0);
+
+
+        await fs.promises.access(downloadedFile.fsPath, fs.constants.X_OK)
+            .catch((error: Error) => {
+                assert.fail(`File is not executable: ${error}`);
+            });
+    });
+
 });

@@ -55,6 +55,7 @@ export default class FileDownloader implements IFileDownloader {
         const retries = settings?.retries ?? DefaultRetries;
         const retryDelayInMs = settings?.retryDelayInMs ?? DefaultRetryDelayInMs;
         const shouldUnzip = settings?.shouldUnzip ?? false;
+        const makeExecutable = settings?.makeExecutable ?? false;
         const headers = settings?.headers;
         let progress = 0;
         let progressTimerId: any;
@@ -117,6 +118,21 @@ export default class FileDownloader implements IFileDownloader {
         if (cancellationToken?.isCancellationRequested ?? false) {
             await rimrafAsync(tempFileDownloadPath);
             throw new DownloadCanceledError();
+        }
+
+        // Make the file executable if requested
+        // File permissions are preserved after moving the file
+        // Files are downloaded with 0o644 file permissions
+        try {
+            if (makeExecutable) {
+                await fs.promises.chmod(tempFileDownloadPath, 0o744);
+            }
+        }
+        catch (error) {
+            if (error instanceof Error) {
+                this._logger.error(`Failed cannot be made executable: ${error.message}. Technical details: ${JSON.stringify(error)}`);
+            }
+            throw error;
         }
 
         try {
