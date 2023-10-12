@@ -1,0 +1,46 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    steps:
+    - name: Checkout Branch
+      uses: actions/checkout@v1
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16.20.1'
+    - name: Build Extension
+      run: |
+        npm install
+        npm run compile
+    - name: Smoke test (Linux)
+      run: xvfb-run -a npm run test
+      if: runner.os == 'Linux'
+    - name: Smoke test (Mac, Windows)
+      run: npm run test
+      if: runner.os != 'Linux'
+    - name: Package Extension
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        npm install -g vsce
+        vsce package
+        mkdir vsix
+        mv *.vsix vsix
+    - name: Archive Extension
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v1
+      with:
+        name: vsix
+        path: vsix
