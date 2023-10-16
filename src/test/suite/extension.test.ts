@@ -253,7 +253,7 @@ suite(`Integration Tests`, () => {
     test(`404 status code`, async () => {
         try {
             await fileDownloader.downloadFile(
-                Uri.parse(`http://httpstat.us/404`),
+                Uri.parse(`https://github.com/microsoft/cascadia-code/releases/download/v2005.15/doesntexist`),
                 TestDownloadFilename,
                 MockExtensionContext
             );
