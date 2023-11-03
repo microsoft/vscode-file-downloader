@@ -8,8 +8,9 @@ import { Readable } from "stream";
 import * as extractZip from 'extract-zip';
 import { CancellationToken, ExtensionContext, Uri } from "vscode";
 import { v4 as uuid } from "uuid";
+import axios, { AxiosResponse } from "axios";
 import { rimrafAsync } from "./utility/FileSystem";
-import IFileDownloader, { FileDownloadSettings } from "./IFileDownloader";
+import { IFileDownloader, FileDownloadSettings } from "./IFileDownloader";
 import IHttpRequestHandler from "./networking/IHttpRequestHandler";
 import ILogger from "./logging/ILogger";
 import { DownloadCanceledError, ErrorUtils, FileNotFoundError } from "./utility/Errors";
@@ -20,7 +21,7 @@ const DefaultTimeoutInMs = 5000;
 const DefaultRetries = 5;
 const DefaultRetryDelayInMs = 100;
 
-export default class FileDownloader implements IFileDownloader {
+export class FileDownloader implements IFileDownloader {
     public constructor(
         private readonly _requestHandler: IHttpRequestHandler,
         private readonly _logger: ILogger
@@ -28,6 +29,47 @@ export default class FileDownloader implements IFileDownloader {
 
     private static getDownloadsStoragePath(context: ExtensionContext): string {
         return path.join(context.globalStorageUri.fsPath, `file-downloader-downloads`);
+    }
+
+    /**
+     * @param settings optional additional settings for the download. If this is not provided, we will set the Accept header
+     * to application/octet-stream.
+     */
+    public async downloadFileFromGitHubRelease(
+        owner: string,
+        repository: string,
+        fileName: string,
+        context: ExtensionContext,
+        cancellationToken?: CancellationToken,
+        onDownloadProgressChange?: (downloadedBytes: number, totalBytes: number | undefined) => void,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        settings = { headers: { Accept: `application/octet-stream` } } as FileDownloadSettings
+    ): Promise<Uri> {
+        const url = await this.getGitHubDownloadLink(owner, repository, fileName);
+        if (url === undefined) {
+            throw new Error(`Failed to get download link for ${fileName}.`);
+        }
+
+        // Make sure we always have the Accept header set to application/octet-stream
+        if (settings.headers === undefined) {
+            settings.headers = {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                Accept: `application/octet-stream`
+            };
+        }
+        else if (settings.headers.Accept === undefined) {
+            settings.headers.Accept = `application/octet-stream`;
+        }
+
+        // If the GITHUB_TOKEN is set, then use it to download the file
+        // and then we wont get rate limited.
+        const token = process.env.GITHUB_TOKEN;
+        if (token != null) {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            settings.headers.Authorization = `Bearer ${token}`;
+        }
+
+        return this.downloadFile(url, fileName, context, cancellationToken, onDownloadProgressChange, settings);
     }
 
     public async downloadFile(
@@ -204,5 +246,35 @@ export default class FileDownloader implements IFileDownloader {
 
     public async deleteAllItems(context: ExtensionContext): Promise<void> {
         await rimrafAsync(FileDownloader.getDownloadsStoragePath(context));
+    }
+
+    // Gets the download link for the latest release of a repo in GitHub.
+    // Returns an empty string if the file is not found.
+    // Example:
+    // https://github.com/microsoft/vscode/releases/latest
+    // owner: microsoft
+    // repo: vscode
+    // fileName: 1.8.3.zip
+    // Returns: Either a link or undefined.
+    private async getGitHubDownloadLink(
+        owner: string,
+        repository: string,
+        fileName: string
+    ): Promise<Uri | undefined> {
+        try {
+            const response: AxiosResponse<IGithubRelease> = await axios.get(`https://api.github.com/repos/${owner}/${repository}/releases/latest`);
+            for (const asset of response.data.assets) {
+                if (asset.name === fileName) {
+                    return Uri.parse(asset.url);
+                }
+            }
+        }
+        catch (error) {
+            // Maybe GitHub is is down, don't stop the extension from working.
+            this._logger.error(`${error}. Technical details: ${JSON.stringify(error)}`);
+        }
+
+        this._logger.error(`${fileName} not found in latest release.`);
+        return undefined;
     }
 }

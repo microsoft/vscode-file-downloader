@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 import { ExtensionContext } from "vscode";
-import FileDownloader from "./FileDownloader";
+import { FileDownloader } from "./FileDownloader";
 import HttpRequestHandler from "./networking/HttpRequestHandler";
-import IFileDownloader from "./IFileDownloader";
+import { IFileDownloader } from "./IFileDownloader";
 import OutputLogger from "./logging/OutputLogger";
 
 // Called when the extension is activated

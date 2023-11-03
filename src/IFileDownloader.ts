@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ExtensionContext, CancellationToken, Uri } from "vscode";
+import { CancellationToken, ExtensionContext, Uri } from "vscode";
 
 export interface FileDownloadSettings {
     /**
@@ -34,13 +34,13 @@ export interface FileDownloadSettings {
      * @default undefined
      * @example
      * {
-     *   headers: {"Accept": `application/octet-stream`, "Content-Type": `application/octet-stream`}
+     *   headers: {"Accept": `application/octet-stream`}
      * }
      */
     headers?: Record<string, string | number | boolean> | undefined;
 }
 
-export default interface IFileDownloader {
+export interface IFileDownloader {
     /**
      * Downloads a file from a URL and gives back the file path, file name, and a checksum. Allows you to specify the
      * timeout, the number of acceptable retries, whether or not to unzip the file, and whether or not to check the
@@ -59,6 +59,35 @@ export default interface IFileDownloader {
     downloadFile(
         url: Uri,
         filename: string,
+        context: ExtensionContext,
+        cancellationToken?: CancellationToken,
+        onDownloadProgressChange?: (downloadedBytes: number, totalBytes: number | undefined) => void,
+        settings?: FileDownloadSettings
+    ): Promise<Uri>;
+    /**
+     * Downloads a file from a GitHub release and gives back the file path, file name, and a checksum. Allows you to
+     * specify the timeout, the number of acceptable retries, whether or not to unzip the file, and whether or not to
+     * check the downloaded file against a checksum.
+     *
+     * @param owner the owner of the repository
+     * @param repository the repository to download from
+     * @param fileName the name of the file to download
+     * @param context the context for the extension downloading the file
+     * @param cancellationToken token that allows cancelling the download
+     * @param onDownloadProgressChange a callback that gets called every time a new chunk of data comes from the server.
+     * Note: the totalBytes parameter corresponds to the content-length provided by the server in the GET response
+     * header. It could differ from the actual number of bytes in the download, or may not be provided at all.
+     * @param settings optional additional settings for the download.
+     * @returns the URI containing the path to the downloaded file or unzipped directory
+     * @throws Error if the file is not found in the latest release
+     * @example downloadFileFromGitHubRelease(`microsoft`, `vscode`, `VSCode-linux-x64.zip`, context);
+     * @remarks This method is a wrapper around `downloadFile` that constructs the URL for the latest release of a
+     * GitHub repository.
+     */
+    downloadFileFromGitHubRelease(
+        owner: string,
+        repository: string,
+        fileName: string,
         context: ExtensionContext,
         cancellationToken?: CancellationToken,
         onDownloadProgressChange?: (downloadedBytes: number, totalBytes: number | undefined) => void,
