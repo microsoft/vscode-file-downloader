@@ -172,7 +172,7 @@ export class FileDownloader implements IFileDownloader {
         }
         catch (error) {
             if (error instanceof Error) {
-                this._logger.error(`Failed cannot be made executable: ${error.message}. Technical details: ${JSON.stringify(error)}`);
+                this._logger.error(`File cannot be made executable: ${tempFileDownloadPath}. Technical details: ${JSON.stringify(error)}`);
             }
             throw error;
         }
@@ -253,7 +253,7 @@ export class FileDownloader implements IFileDownloader {
     // Example:
     // https://github.com/microsoft/vscode/releases/latest
     // owner: microsoft
-    // repo: vscode
+    // repository: vscode
     // fileName: 1.8.3.zip
     // Returns: Either a link or undefined.
     private async getGitHubDownloadLink(
@@ -270,8 +270,8 @@ export class FileDownloader implements IFileDownloader {
             }
         }
         catch (error) {
-            // Maybe GitHub is is down, don't stop the extension from working.
-            this._logger.error(`${error}. Technical details: ${JSON.stringify(error)}`);
+            // Maybe GitHub is down, don't stop the extension from working.
+            this._logger.error(`Failed to access https://api.github.com/repos/${owner}/${repository} for ${fileName}. Technical details: ${JSON.stringify(error)}`);
         }
 
         this._logger.error(`${fileName} not found in latest release.`);
