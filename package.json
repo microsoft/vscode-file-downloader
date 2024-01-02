@@ -15,6 +15,16 @@
     "categories": [
         "Other"
     ],
+    "capabilities": {
+        "virtualWorkspaces": {
+            "supported": false,
+            "description": "This extension writes to the file system."
+        },
+        "untrustedWorkspaces": {
+            "supported": true,
+            "description": "This extension does not write to the workspace location."
+        }
+    },
     "activationEvents": [],
     "main": "./dist/extension",
     "contributes": {
