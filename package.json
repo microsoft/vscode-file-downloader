@@ -4,7 +4,7 @@
     "description": "Exposes an API that allows other extensions to download files.",
     "publisher": "mindaro-dev",
     "license": "MIT",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "repository": {
         "type": "git",
         "url": "https://github.com/microsoft/vscode-file-downloader.git"
