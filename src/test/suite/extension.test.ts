@@ -5,7 +5,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import { ExtensionContext, extensions, Uri, window, CancellationTokenSource } from "vscode";
-import IFileDownloader, { FileDownloadSettings } from "../../IFileDownloader";
+import { IFileDownloader, FileDownloadSettings } from "../../IFileDownloader";
 import { ErrorUtils } from "../../utility/Errors";
 import { rimrafAsync } from "../../utility/FileSystem";
 
@@ -18,8 +18,6 @@ const MockExtensionContext = { globalStoragePath: MockGlobalStoragePath, globalS
 
 const TestDownloadUri = Uri.parse(`https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`);
 const TestDownloadFilename = `test.pdf`;
-const TestDownloadUriWithSettings = Uri.parse(`https://api.github.com/repos/stuartleeks/pick-a-browser/releases/assets/95441770`);
-const TestDownloadFilenameWithSettings = `pick-a-browser_windows_386.zip`;
 
 suite(`Integration Tests`, () => {
     window.showInformationMessage(`Start all tests.`);
@@ -253,7 +251,7 @@ suite(`Integration Tests`, () => {
     test(`404 status code`, async () => {
         try {
             await fileDownloader.downloadFile(
-                Uri.parse(`http://httpstat.us/404`),
+                Uri.parse(`https://github.com/microsoft/cascadia-code/releases/download/v2005.15/doesntexist`),
                 TestDownloadFilename,
                 MockExtensionContext
             );
@@ -303,21 +301,80 @@ suite(`Integration Tests`, () => {
         }
     });
 
-    test(`Simple download from GitHub`, async () => {
+    // This test will add the required headers to the request and download the file
+    test(`GitHub download`, async () => {
+
+        const downloadedFile: Uri =
+            await fileDownloader.downloadFileFromGitHubRelease(
+                `stuartleeks`,
+                `pick-a-browser`,
+                `pick-a-browser_windows_386.zip`,
+                MockExtensionContext,
+                undefined,
+                undefined,
+                undefined
+            );
+
+        assert(downloadedFile != null);
+
+        const stats = await fs.promises.stat(downloadedFile.fsPath);
+        const fileSizeInBytes = stats.size;
+        assert(fileSizeInBytes > 0);
+    });
+
+    test(`GitHub Release executable`, async () => {
+
         const settings: FileDownloadSettings = {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            headers: {"Accept": `application/octet-stream`, "Content-Type": `application/octet-stream`}
+            makeExecutable: true
         };
 
-        assert(
-            await fileDownloader.downloadFile(
-                TestDownloadUriWithSettings,
-                TestDownloadFilenameWithSettings,
+        const downloadedFile: Uri =
+            await fileDownloader.downloadFileFromGitHubRelease(
+                `stuartleeks`,
+                `pick-a-browser`,
+                `pick-a-browser_windows_386.zip`,
                 MockExtensionContext,
                 undefined,
                 undefined,
                 settings
-            )
-        );
+            );
+
+        assert(downloadedFile != null);
+
+        const stats = await fs.promises.stat(downloadedFile.fsPath);
+        const fileSizeInBytes = stats.size;
+        assert(fileSizeInBytes > 0);
+
+        await fs.promises.access(downloadedFile.fsPath, fs.constants.X_OK)
+            .catch((error: Error) => {
+                assert.fail(`File is not executable: ${error}`);
+            });
+    });
+
+    test(`Make executable`, async () => {
+        const settings: FileDownloadSettings = {
+            makeExecutable: true
+        };
+
+        const downloadedFile: Uri =
+            await fileDownloader.downloadFile(
+                TestDownloadUri,
+                TestDownloadFilename,
+                MockExtensionContext,
+                undefined,
+                undefined,
+                settings
+            );
+
+        assert(downloadedFile != null);
+
+        const stats = await fs.promises.stat(downloadedFile.fsPath);
+        const fileSizeInBytes = stats.size;
+        assert(fileSizeInBytes > 0);
+
+        await fs.promises.access(downloadedFile.fsPath, fs.constants.X_OK)
+            .catch((error: Error) => {
+                assert.fail(`File is not executable: ${error}`);
+            });
     });
 });
