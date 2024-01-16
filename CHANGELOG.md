@@ -6,4 +6,4 @@
 * [Add build and publish workflows](https://github.com/microsoft/vscode-file-downloader/pull/44)
 * [Fix broken unit test case](https://github.com/microsoft/vscode-file-downloader/pull/45)
 
-Thanks to @ross-p-smith for great contributions and @Tatsinnit for great collobarations. 
+Thanks to @ross-p-smith for great contributions and @Tatsinnit for great collaborations. 
