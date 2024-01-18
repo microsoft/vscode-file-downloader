@@ -5,6 +5,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import { ExtensionContext, extensions, Uri, window, CancellationTokenSource } from "vscode";
+import axios, { AxiosError } from "axios";
 import { IFileDownloader, FileDownloadSettings } from "../../IFileDownloader";
 import { ErrorUtils } from "../../utility/Errors";
 import { rimrafAsync } from "../../utility/FileSystem";
@@ -257,11 +258,10 @@ suite(`Integration Tests`, () => {
             );
             assert.fail();
         }
-        catch (error) {
-            if (error instanceof Error) {
-                if (`response` in error) {
-                    // eslint-disable-next-line @typescript-eslint/dot-notation
-                    assert(error[`response`][`status`] === 404);
+        catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                if (error.response) {
+                    assert(error.response.status === 404);
                 }
                 assert.notEqual(error.name, `RetriesExceededError`);
             }
